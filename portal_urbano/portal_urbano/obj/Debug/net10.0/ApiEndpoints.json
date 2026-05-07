@@ -1,0 +1,12 @@
+[
+  {
+    "ContainingType": "portal_urbano.Controllers.DenunciaController",
+    "Method": "Get",
+    "RelativePath": "api/Denuncia",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]
