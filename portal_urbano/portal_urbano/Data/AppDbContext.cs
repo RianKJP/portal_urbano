@@ -22,8 +22,20 @@ namespace portal_urbano.Data
             base.OnModelCreating(modelBuilder);
 
             // =========================
+            // USUARIO
+            // =========================
+            modelBuilder.Entity<Usuario>()
+                .Property(u => u.Avisos)
+                .HasDefaultValue(0);
+
+            modelBuilder.Entity<Usuario>()
+                .Property(u => u.Banido)
+                .HasDefaultValue(false);
+
+            // =========================
             // DENUNCIA
             // =========================
+
             modelBuilder.Entity<Denuncia>()
                 .Property(d => d.Latitude)
                 .HasColumnType("decimal(18,6)");
@@ -62,6 +74,10 @@ namespace portal_urbano.Data
             // =========================
             // REPORTE
             // =========================
+            modelBuilder.Entity<Reporte>()
+                .HasIndex(r => new { r.IdDenuncia, r.IdUsuario })
+                .IsUnique();
+
             modelBuilder.Entity<Reporte>()
                 .HasOne(r => r.Usuario)
                 .WithMany()

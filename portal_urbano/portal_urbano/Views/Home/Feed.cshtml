@@ -337,6 +337,64 @@
             color: var(--text-muted);
         }
 
+        .report-menu {
+            position: relative;
+        }
+
+        .menu-more-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .menu-more-btn:hover {
+            background: rgba(255,255,255,0.06);
+            color: var(--text-light);
+        }
+
+        .report-menu-options {
+            display: none;
+            position: absolute;
+            top: 36px;
+            right: 0;
+            min-width: 170px;
+            padding: 6px;
+            background: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+            z-index: 20;
+        }
+
+        .report-menu.open .report-menu-options {
+            display: block;
+        }
+
+        .report-menu-options button {
+            width: 100%;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #fecaca;
+            padding: 10px 12px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .report-menu-options button:hover {
+            background: rgba(239, 68, 68, 0.12);
+        }
+
         /* Post Image */
         .post-image {
             width: 100%;
@@ -416,6 +474,35 @@
             font-weight: 600;
             display: inline-block;
             margin-bottom: 8px;
+        }
+
+        .badges-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .badges-row .category-badge {
+            margin-bottom: 0;
+        }
+
+        .status-badge {
+            background: rgba(239, 68, 68, 0.12);
+            color: #fecaca;
+            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .report-count {
+            display: block;
+            margin-top: 8px;
+            color: #fca5a5;
+            font-size: 12px;
+            font-weight: 600;
         }
 
         .view-more-comments {
@@ -580,6 +667,78 @@
             return urlArray[0] || null;
         }
 
+        function getTotalComentarios(denuncia) {
+            return Number(denuncia.totalComentarios ?? (denuncia.comentarios ? denuncia.comentarios.length : 0));
+        }
+
+        function getTotalLikes(denuncia) {
+            return Number(denuncia.totalLikes || 0);
+        }
+
+        function sortDenunciasPorInteracao(data) {
+            return [...(data || [])].sort((a, b) => {
+                const interacoesA = getTotalLikes(a) + getTotalComentarios(a);
+                const interacoesB = getTotalLikes(b) + getTotalComentarios(b);
+
+                if (interacoesB !== interacoesA) return interacoesB - interacoesA;
+                if (getTotalComentarios(b) !== getTotalComentarios(a)) return getTotalComentarios(b) - getTotalComentarios(a);
+                if (getTotalLikes(b) !== getTotalLikes(a)) return getTotalLikes(b) - getTotalLikes(a);
+
+                return new Date(b.criadoEm) - new Date(a.criadoEm);
+            });
+        }
+
+        function closeReportMenus() {
+            document.querySelectorAll('.report-menu.open').forEach(menu => menu.classList.remove('open'));
+        }
+
+        function toggleReportMenu(event, denunciaId) {
+            event.stopPropagation();
+            const menu = document.getElementById(`report-menu-${denunciaId}`);
+            const isOpen = menu.classList.contains('open');
+
+            closeReportMenus();
+            if (!isOpen) menu.classList.add('open');
+        }
+
+        document.addEventListener('click', closeReportMenus);
+
+        async function reportDenuncia(denunciaId) {
+            closeReportMenus();
+
+            try {
+                const res = await fetch(`/api/Denuncia/${denunciaId}/reportar`, { method: 'POST' });
+                const data = await res.json().catch(() => ({}));
+
+                if (res.status === 409) {
+                    alert(data.message || 'Voce ja denunciou esta denuncia.');
+                    return;
+                }
+
+                if (!res.ok) {
+                    alert(data.message || 'Nao foi possivel denunciar esta denuncia.');
+                    return;
+                }
+
+                if (data.removida) {
+                    allFeedData = allFeedData.filter(d => d.idDenuncia !== denunciaId);
+                } else {
+                    const denuncia = allFeedData.find(d => d.idDenuncia === denunciaId);
+                    if (denuncia) {
+                        denuncia.status = data.status;
+                        denuncia.totalReportes = data.totalReportes;
+                    }
+                }
+
+                renderTopCategories(allFeedData);
+                filterBy(currentFilter);
+                alert(data.message || 'Denuncia registrada com sucesso.');
+            } catch (err) {
+                console.error('Erro ao denunciar', err);
+                alert('Erro ao denunciar esta denuncia.');
+            }
+        }
+
         // Like Animation Toggle & Fetch
         async function toggleLike(btn, denunciaId) {
             btn.classList.toggle('liked');
@@ -596,11 +755,21 @@
                 
                 // Update Like Count Text
                 const countSpan = document.getElementById(`like-count-${denunciaId}`);
-                let current = parseInt(countSpan.innerText.split(' ')[0]) || 0;
-                countSpan.innerText = data.liked ? `${current + 1} curtidas` : `${Math.max(0, current - 1)} curtidas`;
+                let current = countSpan ? parseInt(countSpan.innerText.split(' ')[0]) || 0 : 0;
+                if (countSpan) countSpan.innerText = data.liked ? `${current + 1} curtidas` : `${Math.max(0, current - 1)} curtidas`;
                 
                 if (data.liked) btn.classList.add('liked');
                 else btn.classList.remove('liked');
+
+                const denuncia = allFeedData.find(d => d.idDenuncia === denunciaId);
+                if (denuncia) {
+                    const totalLikes = getTotalLikes(denuncia);
+                    denuncia.likedByUser = data.liked;
+                    denuncia.totalLikes = data.liked ? totalLikes + 1 : Math.max(0, totalLikes - 1);
+                }
+
+                allFeedData = sortDenunciasPorInteracao(allFeedData);
+                filterBy(currentFilter);
 
             } catch (err) { console.error('Erro ao curtir', err); }
         }
@@ -622,10 +791,26 @@
                 });
                 
                 if(res.ok) {
+                    const data = await res.json();
+                    const denuncia = allFeedData.find(d => d.idDenuncia === denunciaId);
+
+                    if (denuncia) {
+                        const totalComentariosAtual = getTotalComentarios(denuncia);
+                        denuncia.comentarios = denuncia.comentarios || [];
+                        denuncia.comentarios.push({
+                            idComentario: data.id,
+                            texto: data.texto,
+                            criadoEm: data.criadoEm,
+                            nomeUsuario: data.usuario,
+                            isOwner: true
+                        });
+                        denuncia.totalComentarios = totalComentariosAtual + 1;
+                    }
+
                     input.value = '';
-                    // Ao comentar, expandimos para ver o novo comentário
                     expandedComments.add(denunciaId);
-                    carregarFeed(); 
+                    allFeedData = sortDenunciasPorInteracao(allFeedData);
+                    filterBy(currentFilter);
                 }
             } catch(e) { console.error(e); }
         }
@@ -634,8 +819,17 @@
         async function deleteComment(comentarioId) {
             if(confirm('Deseja realmente excluir este comentário?')) {
                 try {
-                    await fetch(`/api/Denuncia/comentario/${comentarioId}`, { method: 'DELETE' });
-                    carregarFeed(); // Recarrega a tela
+                    const res = await fetch(`/api/Denuncia/comentario/${comentarioId}`, { method: 'DELETE' });
+                    if (!res.ok) return;
+
+                    const denuncia = allFeedData.find(d => (d.comentarios || []).some(c => c.idComentario === comentarioId));
+                    if (denuncia) {
+                        denuncia.comentarios = (denuncia.comentarios || []).filter(c => c.idComentario !== comentarioId);
+                        denuncia.totalComentarios = Math.max(0, getTotalComentarios(denuncia) - 1);
+                    }
+
+                    allFeedData = sortDenunciasPorInteracao(allFeedData);
+                    filterBy(currentFilter);
                 } catch(e) { console.error(e); }
             }
         }
@@ -659,14 +853,14 @@
                         fetch('/api/Denuncia/categorias')
                     ]);
                     
-                    allFeedData = await resDenuncias.json();
+                    allFeedData = sortDenunciasPorInteracao(await resDenuncias.json());
                     allCategories = await resCategorias.json();
                     
                     renderFilterPills(allCategories);
                     renderTopCategories(allFeedData);
                 }
 
-                let data = customData || allFeedData;
+                let data = sortDenunciasPorInteracao(customData || allFeedData);
                 
                 const container = document.getElementById('feed-container');
                 container.innerHTML = ''; // Limpa o loading
@@ -680,6 +874,11 @@
                     const imageUrl = getFirstImage(d.imagemUrl);
                     const initial = d.nomeUsuario ? d.nomeUsuario.charAt(0).toUpperCase() : 'A';
                     const locationText = d.endereco ? d.endereco : 'Localização não informada';
+                    const totalReportes = d.totalReportes || 0;
+                    const statusBadge = d.status === 'Lista Negra' ? '<span class="status-badge">Lista negra</span>' : '';
+                    const reportInfo = totalReportes > 0
+                        ? `<span class="report-count">${totalReportes} denuncia${totalReportes === 1 ? '' : 's'} recebida${totalReportes === 1 ? '' : 's'}</span>`
+                        : '';
 
                     // Lógica de "Ver Mais" Comentários
                     const isExpanded = expandedComments.has(d.idDenuncia);
@@ -719,6 +918,14 @@
                                 <div class="location">${locationText}</div>
                             </div>
                             <div class="time-ago">${timeAgo(d.criadoEm)}</div>
+                            <div class="report-menu" id="report-menu-${d.idDenuncia}">
+                                <button class="menu-more-btn" type="button" onclick="toggleReportMenu(event, ${d.idDenuncia})" aria-label="Mais opcoes">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
+                                </button>
+                                <div class="report-menu-options">
+                                    <button type="button" onclick="reportDenuncia(${d.idDenuncia})">Denunciar denuncia</button>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="post-image" ondblclick="toggleLike(this.nextElementSibling.querySelector('.btn-like'), ${d.idDenuncia})">
@@ -746,9 +953,13 @@
                         </div>
 
                         <div class="post-content">
-                            <div class="category-badge">${d.categoria}</div>
+                            <div class="badges-row">
+                                <div class="category-badge">${d.categoria}</div>
+                                ${statusBadge}
+                            </div>
                             <span class="post-title">${d.titulo}</span>
                             <span class="post-desc">${d.descricao}</span>
+                            ${reportInfo}
                         </div>
 
                         <div class="comments-section" style="padding: 0 16px 8px 16px;">
@@ -874,7 +1085,7 @@
                 });
             }
             
-            carregarFeed(filtered);
+            carregarFeed(sortDenunciasPorInteracao(filtered));
         }
 
         // Inicializa

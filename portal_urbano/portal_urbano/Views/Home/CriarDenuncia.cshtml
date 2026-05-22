@@ -1,5 +1,9 @@
 @{
     Layout = null;
+    var moderacao = Context.Request.Query["moderacao"].ToString();
+    var avisos = 0;
+    int.TryParse(Context.Request.Query["avisos"].ToString(), out avisos);
+    var usuarioBanido = moderacao == "banido";
 }
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -133,6 +137,27 @@
             padding: 32px;
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            line-height: 1.45;
+            font-weight: 500;
+        }
+
+        .alert-warning {
+            background: rgba(249, 115, 22, 0.12);
+            border: 1px solid rgba(249, 115, 22, 0.35);
+            color: #fed7aa;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.12);
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            color: #fecaca;
         }
 
         .input-group {
@@ -269,6 +294,13 @@
             box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
         }
 
+        .btn-submit:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         /* MEDIA QUERIES */
         @@media (max-width: 992px) {
             .container {
@@ -316,6 +348,19 @@
 
         <!-- RIGHT COLUMN -->
         <div class="right-col">
+            @if (usuarioBanido)
+            {
+                <div class="alert alert-danger">
+                    Seu usuario foi banido do sistema apos 3 avisos. Voce nao pode criar novas denuncias.
+                </div>
+            }
+            else if (moderacao == "aviso")
+            {
+                <div class="alert alert-warning">
+                    Denuncia bloqueada: o titulo ou a descricao contem termos ofensivos ou spam. Aviso @avisos de 3.
+                </div>
+            }
+
             <form action="/api/Denuncia" method="post" enctype="multipart/form-data">
                 <!-- Campos Ocultos para Latitude e Longitude (usando nomes diferentes para evitar conflito de binding) -->
                 <input type="hidden" id="latitude" name="lat_str" value="0" />
@@ -384,7 +429,7 @@
                     </label>
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-submit" @(usuarioBanido ? "disabled" : "")>
                     Enviar Denúncia
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>

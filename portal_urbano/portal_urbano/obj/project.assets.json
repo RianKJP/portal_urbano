@@ -2592,11 +2592,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\riane\\source\\repos\\portal_urbano\\portal_urbano\\portal_urbano.csproj",
+      "projectUniqueName": "C:\\Users\\riane\\Documents\\GitHub\\portal_urbano\\portal_urbano\\portal_urbano\\portal_urbano.csproj",
       "projectName": "portal_urbano",
-      "projectPath": "C:\\Users\\riane\\source\\repos\\portal_urbano\\portal_urbano\\portal_urbano.csproj",
+      "projectPath": "C:\\Users\\riane\\Documents\\GitHub\\portal_urbano\\portal_urbano\\portal_urbano\\portal_urbano.csproj",
       "packagesPath": "C:\\Users\\riane\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\riane\\source\\repos\\portal_urbano\\portal_urbano\\obj\\",
+      "outputPath": "C:\\Users\\riane\\Documents\\GitHub\\portal_urbano\\portal_urbano\\portal_urbano\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

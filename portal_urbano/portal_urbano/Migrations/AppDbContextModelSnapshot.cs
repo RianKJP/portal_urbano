@@ -71,6 +71,9 @@ namespace portal_urbano.Migrations
 
                     b.HasIndex("IdDenuncia");
 
+                    b.HasIndex("IdDenuncia", "IdUsuario")
+                        .IsUnique();
+
                     b.HasIndex("IdUsuario");
 
                     b.ToTable("Comentarios");
@@ -163,6 +166,16 @@ namespace portal_urbano.Migrations
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("IdUsuario"));
+
+                    b.Property<int>("Avisos")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("Banido")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("datetime(6)");
