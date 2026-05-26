@@ -7,10 +7,10 @@ namespace portal_urbano.Models
         [Key]
         public int IdCategoria { get; set; }
 
-        public string Nome { get; set; }
-        public string Descricao { get; set; }
-        public string? Icone { get; set; }
+        public string Nome { get; set; } = string.Empty;
+        public string Descricao { get; set; } = string.Empty;
+        public string Icone { get; set; } = string.Empty;
 
-        public List<Denuncia> Denuncias { get; set; }
+        public List<Denuncia> Denuncias { get; set; } = new();
     }
 }
