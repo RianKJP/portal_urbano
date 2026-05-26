@@ -28,7 +28,7 @@ namespace portal_urbano.Models
         public string Uf { get; set; } = string.Empty;
         public string Cep { get; set; } = string.Empty;
         public string? Complemento { get; set; }
-        public string? Status { get; set; }
+        public string Status { get; set; } = "Aberta";
         public int StatusAnonimo { get; set; } = 0;
 
         public List<Comentario> Comentarios { get; set; } = new List<Comentario>();

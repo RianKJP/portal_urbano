@@ -15,7 +15,7 @@ namespace portal_urbano.Models
         public int Avisos { get; set; } = 0;
         public bool Banido { get; set; } = false;
 
-        public DateTime CriadoEm { get; set; } = DateTime.Now;
+        public DateTime? CriadoEm { get; set; }
 
         public List<Denuncia> Denuncias { get; set; } = new List<Denuncia>();
     }

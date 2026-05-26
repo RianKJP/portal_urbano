@@ -395,6 +395,100 @@
             background: rgba(239, 68, 68, 0.12);
         }
 
+        .report-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 5000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .report-modal.open {
+            display: flex;
+        }
+
+        .report-modal-backdrop {
+            position: absolute;
+            inset: 0;
+            background: rgba(2, 6, 23, 0.75);
+            backdrop-filter: blur(4px);
+        }
+
+        .report-modal-dialog {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            background: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+        }
+
+        .report-modal-dialog h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .report-modal-dialog p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .report-modal-dialog label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-light);
+        }
+
+        .report-modal-dialog select,
+        .report-modal-dialog textarea {
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-light);
+            font-family: inherit;
+            font-size: 14px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+
+        .report-modal-dialog textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .report-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .report-modal-actions button {
+            border: none;
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-report-cancel {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+        }
+
+        .btn-report-submit {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            color: white;
+        }
+
         /* Post Image */
         .post-image {
             width: 100%;
@@ -609,6 +703,29 @@
         </div>
     </div>
 
+    <div id="reportModal" class="report-modal" aria-hidden="true">
+        <div class="report-modal-backdrop" onclick="closeReportModal()"></div>
+        <div class="report-modal-dialog" role="dialog" aria-labelledby="reportModalTitle">
+            <h3 id="reportModalTitle">Denunciar postagem</h3>
+            <p>Informe o motivo para ajudar na moderacao da comunidade.</p>
+            <label for="reportMotivoSelect">Motivo</label>
+            <select id="reportMotivoSelect">
+                <option value="">Selecione um motivo...</option>
+                <option value="Spam ou golpe">Spam ou golpe</option>
+                <option value="Conteudo ofensivo">Conteudo ofensivo</option>
+                <option value="Informacao falsa">Informacao falsa</option>
+                <option value="Nao relacionado ao tema urbano">Nao relacionado ao tema urbano</option>
+                <option value="Outro">Outro</option>
+            </select>
+            <label for="reportMotivoDetalhe">Detalhes (opcional)</label>
+            <textarea id="reportMotivoDetalhe" placeholder="Descreva brevemente o problema..."></textarea>
+            <div class="report-modal-actions">
+                <button type="button" class="btn-report-cancel" onclick="closeReportModal()">Cancelar</button>
+                <button type="button" class="btn-report-submit" onclick="confirmReportDenuncia()">Enviar denuncia</button>
+            </div>
+        </div>
+    </div>
+
     <!-- FEED CONTAINER -->
     <div class="main-content">
         <div class="feed-header">
@@ -703,11 +820,50 @@
 
         document.addEventListener('click', closeReportMenus);
 
-        async function reportDenuncia(denunciaId) {
+        let reportDenunciaIdPending = null;
+
+        function openReportModal(denunciaId) {
             closeReportMenus();
+            reportDenunciaIdPending = denunciaId;
+            document.getElementById('reportMotivoSelect').value = '';
+            document.getElementById('reportMotivoDetalhe').value = '';
+            const modal = document.getElementById('reportModal');
+            modal.classList.add('open');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeReportModal() {
+            reportDenunciaIdPending = null;
+            const modal = document.getElementById('reportModal');
+            modal.classList.remove('open');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
+        async function confirmReportDenuncia() {
+            if (!reportDenunciaIdPending) return;
+
+            const motivoBase = document.getElementById('reportMotivoSelect').value;
+            const detalhe = document.getElementById('reportMotivoDetalhe').value.trim();
+
+            if (!motivoBase) {
+                alert('Selecione um motivo para a denuncia.');
+                return;
+            }
+
+            const denunciaId = reportDenunciaIdPending;
+            closeReportModal();
 
             try {
-                const res = await fetch(`/api/Denuncia/${denunciaId}/reportar`, { method: 'POST' });
+                const formData = new FormData();
+                formData.append('motivo', motivoBase);
+                if (detalhe) {
+                    formData.append('detalhes', detalhe);
+                }
+
+                const res = await fetch(`/api/Denuncia/${denunciaId}/reportar`, {
+                    method: 'POST',
+                    body: formData
+                });
                 const data = await res.json().catch(() => ({}));
 
                 if (res.status === 409) {
@@ -923,7 +1079,7 @@
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="12" cy="19" r="2"></circle></svg>
                                 </button>
                                 <div class="report-menu-options">
-                                    <button type="button" onclick="reportDenuncia(${d.idDenuncia})">Denunciar denuncia</button>
+                                    <button type="button" onclick="openReportModal(${d.idDenuncia})">Denunciar postagem</button>
                                 </div>
                             </div>
                         </div>

@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using portal_urbano.Data;
+using portal_urbano.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient<GeminiModeracaoService>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var serverVersion = new MySqlServerVersion(new Version(8, 0, 36)); // Defina a versão do seu MySQL (8.0.36 é um padrão comum)
@@ -39,6 +41,8 @@ app.UseRouting();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",

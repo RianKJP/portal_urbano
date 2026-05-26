@@ -4,6 +4,7 @@ namespace portal_urbano.Controllers
     using Microsoft.EntityFrameworkCore;
     using portal_urbano.Data;
     using portal_urbano.Models;
+    using portal_urbano.Services;
     using System.Globalization;
     using System.Text;
     using System.Text.RegularExpressions;
@@ -15,6 +16,7 @@ namespace portal_urbano.Controllers
         private readonly AppDbContext _context;
         private readonly Supabase.Client _supabaseClient;
         private readonly IConfiguration _configuration;
+        private readonly GeminiModeracaoService _geminiModeracao;
         private const int MaxAvisosParaBanimento = 3;
         private const int TotalReportesParaListaNegra = 5;
         private const int TotalReportesParaRemocao = 10;
@@ -109,11 +111,16 @@ namespace portal_urbano.Controllers
             "morte"
         ];
 
-        public DenunciaController(AppDbContext context, Supabase.Client supabaseClient, IConfiguration configuration)
+        public DenunciaController(
+            AppDbContext context,
+            Supabase.Client supabaseClient,
+            IConfiguration configuration,
+            GeminiModeracaoService geminiModeracao)
         {
             _context = context;
             _supabaseClient = supabaseClient;
             _configuration = configuration;
+            _geminiModeracao = geminiModeracao;
         }
 
         [HttpGet]
@@ -189,7 +196,7 @@ namespace portal_urbano.Controllers
                     return RedirecionarParaAvisoModeracao(usuario);
                 }
 
-                if (ConteudoViolaModeracao(novaDenuncia.Titulo, novaDenuncia.Descricao))
+                if (await ConteudoViolaModeracaoAsync(novaDenuncia.Titulo, novaDenuncia.Descricao))
                 {
                     usuario.Avisos++;
 
@@ -280,11 +287,32 @@ namespace portal_urbano.Controllers
         }
 
         [HttpPost("{id}/reportar")]
-        public async Task<IActionResult> ReportarDenuncia(int id)
+        public async Task<IActionResult> ReportarDenuncia(int id, [FromForm] string? motivo, [FromForm] string? detalhes)
         {
             var usuario = await ObterUsuarioAtualAsync();
             if (usuario == null) return Unauthorized();
             if (usuario.Banido) return StatusCode(StatusCodes.Status403Forbidden, "Usuario banido do sistema.");
+
+            if (string.IsNullOrWhiteSpace(motivo))
+            {
+                return BadRequest(new { message = "Informe o motivo da denuncia." });
+            }
+
+            motivo = motivo.Trim();
+            if (motivo.Length > 500)
+            {
+                motivo = motivo[..500];
+            }
+
+            string? detalhesNormalizado = null;
+            if (!string.IsNullOrWhiteSpace(detalhes))
+            {
+                detalhesNormalizado = detalhes.Trim();
+                if (detalhesNormalizado.Length > 1000)
+                {
+                    detalhesNormalizado = detalhesNormalizado[..1000];
+                }
+            }
 
             var denuncia = await _context.Denuncias
                 .Include(d => d.Reportes)
@@ -311,7 +339,8 @@ namespace portal_urbano.Controllers
             {
                 IdDenuncia = id,
                 IdUsuario = usuario.IdUsuario,
-                Motivo = "Denuncia reportada pelo feed",
+                Motivo = motivo,
+                Detalhes = detalhesNormalizado,
                 CriadoEm = DateTime.UtcNow
             });
 
@@ -361,7 +390,7 @@ namespace portal_urbano.Controllers
             else
             {
                 // Adiciona o like
-                _context.Gostei.Add(new portal_urbano.Models.Gostei { DenunciaId = id, UsuarioId = usuario.IdUsuario });
+                _context.Gostei.Add(new Gostei { DenunciaId = id, UsuarioId = usuario.IdUsuario });
                 await _context.SaveChangesAsync();
                 return Ok(new { liked = true });
             }
@@ -440,7 +469,18 @@ namespace portal_urbano.Controllers
             return usuario;
         }
 
-        private static bool ConteudoViolaModeracao(string? titulo, string? descricao)
+        private async Task<bool> ConteudoViolaModeracaoAsync(string? titulo, string? descricao)
+        {
+            var resultadoIa = await _geminiModeracao.AnalisarTituloDescricaoAsync(titulo, descricao);
+            if (resultadoIa != null)
+            {
+                return resultadoIa.ViolaRegras;
+            }
+
+            return ConteudoViolaModeracaoLocal(titulo, descricao);
+        }
+
+        private static bool ConteudoViolaModeracaoLocal(string? titulo, string? descricao)
         {
             var conteudo = NormalizarTexto($"{titulo} {descricao}");
 

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("portal_urbano")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+24a317824d2d7869b4a4878c2ca8dd50008be64a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c8df2e564a1898f0d399de6565f90c2d9e97104f")]
 [assembly: System.Reflection.AssemblyProductAttribute("portal_urbano")]
 [assembly: System.Reflection.AssemblyTitleAttribute("portal_urbano")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

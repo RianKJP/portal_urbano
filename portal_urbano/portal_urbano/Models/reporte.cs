@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace portal_urbano.Models
 {
     public class Reporte
@@ -10,6 +12,8 @@ namespace portal_urbano.Models
         public int IdUsuario { get; set; }
 
         public string Motivo { get; set; }
+        [Column("detalhes")]
+        public string? Detalhes { get; set; }
         public DateTime CriadoEm { get; set; } = DateTime.Now;
 
         public Denuncia? Denuncia { get; set; }
